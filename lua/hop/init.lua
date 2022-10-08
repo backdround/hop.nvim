@@ -305,7 +305,31 @@ function M.move_cursor_to(w, line, column, hint_offset, direction)
   vim.api.nvim_win_set_cursor(w, { line, column })
 end
 
+local last_hint
+
+function M.repeat_hint()
+  if not last_hint then
+    return
+  end
+
+  local jump_target_gtr = last_hint.jump_target_gtr
+  local opts = last_hint.opts
+
+  if opts == nil then
+    opts = override_opts(opts)
+  end
+
+  M.hint_with_callback(jump_target_gtr, opts, function(jt)
+    M.move_cursor_to(jt.window, jt.line + 1, jt.column - 1, opts.hint_offset, opts.direction)
+  end)
+end
+
 function M.hint_with(jump_target_gtr, opts)
+  last_hint = { jump_target_gtr = jump_target_gtr, opts = opts }
+  if opts.expr then
+    return [[<Cmd>lua require('hop').repeat_hint()<CR>]]
+  end
+
   if opts == nil then
     opts = override_opts(opts)
   end
@@ -458,7 +482,7 @@ function M.hint_words(opts)
     generator = jump_target.jump_targets_by_scanning_lines
   end
 
-  M.hint_with(
+  return M.hint_with(
     generator(jump_target.regex_by_word_start()),
     opts
   )
@@ -492,7 +516,7 @@ function M.hint_patterns(opts, pattern)
     generator = jump_target.jump_targets_by_scanning_lines
   end
 
-  M.hint_with(
+  return M.hint_with(
     generator(jump_target.regex_by_case_searching(pat, false, opts)),
     opts
   )
@@ -513,7 +537,7 @@ function M.hint_char1(opts)
     generator = jump_target.jump_targets_by_scanning_lines
   end
 
-  M.hint_with(
+  return M.hint_with(
     generator(jump_target.regex_by_case_searching(c, true, opts)),
     opts
   )
@@ -534,7 +558,7 @@ function M.hint_char2(opts)
     generator = jump_target.jump_targets_by_scanning_lines
   end
 
-  M.hint_with(
+  return M.hint_with(
     generator(jump_target.regex_by_case_searching(c, true, opts)),
     opts
   )
@@ -550,7 +574,7 @@ function M.hint_lines(opts)
     generator = jump_target.jump_targets_by_scanning_lines
   end
 
-  M.hint_with(
+  return M.hint_with(
     generator(jump_target.by_line_start()),
     opts
   )
@@ -568,7 +592,7 @@ function M.hint_vertical(opts)
     generator = jump_target.jump_targets_by_scanning_lines
   end
 
-  M.hint_with(
+  return M.hint_with(
     generator(jump_target.regex_by_vertical()),
     opts
   )
@@ -585,7 +609,7 @@ function M.hint_lines_skip_whitespace(opts)
     generator = jump_target.jump_targets_by_scanning_lines
   end
 
-  M.hint_with(
+  return M.hint_with(
     generator(jump_target.regex_by_line_start_skip_whitespace()),
     opts
   )
@@ -601,7 +625,7 @@ function M.hint_anywhere(opts)
     generator = jump_target.jump_targets_by_scanning_lines
   end
 
-  M.hint_with(
+  return M.hint_with(
     generator(jump_target.regex_by_anywhere()),
     opts
   )
